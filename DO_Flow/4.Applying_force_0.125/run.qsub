@@ -1,0 +1,21 @@
+#PBS -N f_dist_0.5 
+#PBS -q short 
+#PBS -l nodes=1:ppn=16 
+#PBS -l walltime=24:00:00 
+#PBS -o output.pbs 
+#PBS -e error.pbs 
+cd $PBS_O_WORKDIR
+echo Starting job $PBS_JOBID 
+echo
+echo PBS assigned me this node: 
+cat $PBS_NODEFILE 
+echo 
+echo "Running ${job_name}" 
+echo 
+mpirun -np 16 /home/sr802/Programs/lammps-12Dec18/src/lmp_dexter -in input.lmp
+echo 
+echo "Job finished. PBS details are:" 
+echo 
+qstat -f ${PBS_JOBID} 
+echo 
+echo Finished at \`date\` 

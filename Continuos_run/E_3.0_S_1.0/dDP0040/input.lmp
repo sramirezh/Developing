@@ -1,0 +1,82 @@
+
+# step interval for outputs
+
+variable 	forc0 equal 0.04
+
+variable	myThermo equal 1000
+variable	myRestart equal 1000000
+variable        myImage equal 1000
+variable        myDumpV equal 10000
+variable        myDump equal 10000
+
+
+variable        myRun equal 10^8
+
+units		lj	
+atom_style	full
+boundary p p p
+
+read_data ../Equilibration/final_conf.dat
+
+##########################################################
+#setting interaction parameter
+include ../in.interaction
+##########################################################
+
+# set parameters of Varlet neighbor list
+neighbor        0.5 bin
+neigh_modify	every 1 delay 10 check yes
+
+##########################################################
+#setting geometry
+include ../in.geom
+##########################################################
+
+# set time step
+reset_timestep  0
+timestep	0.005
+run_style	verlet
+
+# set time steps of recording restart file
+restart		${myRestart} ./particle/restart.*
+
+
+##############################################################
+# set display format for thermodynamic quantities
+thermo	        ${myThermo}
+thermo_modify	format float %25.15f lost warn
+
+##########################################################
+
+#Definition of the forces
+##########################################################
+fix adf0 gSolu addforce v_forc0 0.0 0.0
+fix adf1 gSolv addforce v_forc1 0.0 0.0
+fix adfp gPoly addforce v_forcp 0.0 0.0 
+##########################################################
+
+##########################################################
+#setting computation
+include in.computations
+##########################################################
+
+fix              3 all nvt temp 1.0 1.0 1.0
+
+##########################################################
+# set output
+thermo_style custom step c_tempcal c_presscal c_comPoly[3]  v_Fbulk v_Fsol v_forcp v_Ftotal 
+fix pos all ave/time 1 1 100 c_comPoly[1] c_comPoly[2] c_comPoly[3] file "./pos.dat"
+fix cal1 all ave/time 1 1000 1000  v_vx_relative c_vx_poly c_vx_sol v_rRe2 v_rRg2 v_conc_bulk v_frac_bulk file "./vdata.dat"
+
+##########################################################
+#Trajectory output
+##########################################################
+
+dump da2 all custom ${myDump} ./conf/dumpfile*.gz id type x y z ix iy iz vx vy vz
+dump poly gPoly custom ${myDumpV} poly.atom id type x y z ix iy iz
+
+##########################################################
+
+fix poly_recenter gPoly recenter NULL NULL 0.5  units fraction shift all
+
+run ${myRun} 

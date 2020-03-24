@@ -1,0 +1,83 @@
+#General computes and variable definition
+
+#####################################################
+#Variables to set the box
+####################################################
+
+variable lxbox equal lx
+variable lybox equal ly
+variable lzbox equal lz
+
+
+#####################################################
+#Basic calculations
+####################################################
+
+compute tempcal all temp # temperature for all the particles
+compute presscal all pressure tempcal ke
+compute petotal all pe # potential energy
+compute tempsol gSol temp # temperature recalculate for solution
+compute comPoly gPoly com #center of mass of polyper 
+
+####################################################
+# computing Radius of gyration
+####################################################
+
+compute rRg gPoly gyration 
+variable rRg2 equal c_rRg*c_rRg
+
+
+####################################################
+#Computing  RE2E
+####################################################
+
+compute xe1 gE1 reduce ave x
+compute xe2 gE2 reduce ave x
+compute ye1 gE1 reduce ave y
+compute ye2 gE2 reduce ave y
+compute ze1 gE1 reduce ave z
+compute ze2 gE2 reduce ave z
+variable rRe2 equal (c_xe2-c_xe1)^2+(c_ye2-c_ye1)^2+(c_ze2-c_ze1)^2
+variable rRe equal sqrt(v_rRe2)
+variable Rg equal c_rRg
+
+###################################################
+# computing velocities
+###################################################
+
+variable velx atom vx
+compute vx_poly gPoly reduce ave v_velx #Polymer Velocity
+compute vx_sol gSol reduce ave v_velx #Solute Velocity
+variable vx_relative equal c_vx_poly-c_vx_sol #Relative Velocity
+
+###################################################
+#Counting Particles
+###################################################
+
+#All the volume
+
+variable cPoly equal count(gPoly)
+variable cSolu equal count(gSolu) 
+variable cSolv equal count(gSolv)
+
+#Bulk region
+
+variable cBSolu equal count(gSolu,rBulk)
+variable cBSolv equal count(gSolv,rBulk)
+variable cBSol equal count(gSol,rBulk) 
+
+#####################################################
+#Forces per species 
+#####################################################
+
+#Ratios 
+variable cRatio equal 0.109046432513 
+variable conc_bulk equal v_cBSolu/v_bulk_volume  #Solute concentration in the bulk
+variable frac_bulk equal v_cBSolu/v_cBSol 
+
+#Forces
+variable forc1 equal -${forc0}*${cRatio}
+variable Fsol equal ${cSolu}*${forc0}+${cSolv}*${forc1} #Sum of foces over solution particles
+variable Fbulk equal v_cBSolu*${forc0}+v_cBSolv*${forc1} #force balance in the bulk
+variable forcp equal -${Fsol}/${cPoly}
+variable Ftotal equal v_Fsol+v_forcp*v_cPoly #Total force, not necessary but to check 

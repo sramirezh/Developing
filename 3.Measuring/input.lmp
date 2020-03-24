@@ -1,0 +1,77 @@
+#2D Binary LJ simulation in contact with a wall
+# Type 1 is the solvent
+# Type 2 is the solute
+# Type 3 is the wall
+
+dimension 	3
+
+units		lj
+atom_style	atomic
+neighbor	0.5 bin
+neigh_modify	every 1 delay 10 check yes
+
+#Variable definition
+
+variable 	MyInitial equal 3e6
+variable 	MyFinal equal 2e6
+variable 	MyTrajectory equal 10^4
+variable 	MyThermo equal 1000
+
+##########################################################
+#Intialisation
+##########################################################
+
+read_data 	../2.Expansion/final_conf.dat
+change_box	all boundary p p f
+
+include 	../in.interaction
+include		in.geom
+
+
+
+##########################################################
+#Defining the wall
+##########################################################
+
+fix	   	SlipWall gFluid wall/reflect zhi EDGE #SlipWall
+velocity     	gWall set 0.0 0.0 0.0
+fix	     	staticwall gWall setforce 0.0 0.0 0.0
+
+
+# Run Parameters
+
+timestep	0.005
+#inimize 	0.0 1.0e-8 1000 100000          #Relax the initial configuration and velocities
+reset_timestep 	0
+
+
+##########################################################
+# NVT ENSEMBLE
+##########################################################
+
+fix          Ensemble all nvt temp 1.0 1.0 0.1
+compute      temp_fluid gFluid temp
+#fix_modify   Ensemble temp temp_fluid
+
+#Compute and outputs
+
+variable cBSolu equal count(gSolu,rBulk)
+variable cBSolv equal count(gSolv,rBulk)
+
+
+thermo		${MyThermo} 
+thermo_style 	custom step temp c_temp_fluid press pzz atoms  lz v_cBSolu v_cBSolv
+thermo_modify 	flush yes
+dump 		dump_all all custom ${MyTrajectory} all.atom id type x y z ix iy iz
+
+
+run 		${MyInitial}
+
+
+include 	in.computations
+
+write_data 	final_conf.dat nocoeff
+run 		${MyFinal}
+
+
+

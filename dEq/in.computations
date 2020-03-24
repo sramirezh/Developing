@@ -1,0 +1,31 @@
+# temperature
+compute tempcal all temp
+compute presscal all pressure tempcal ke
+# potential energy
+compute petotal all pe
+# temperature recalculate for solute
+compute tempsol gSol temp
+### compute center of mass of polyper ################
+compute comPoly gPoly com
+### compute RG ################
+compute rRg gPoly gyration 
+variable rRg2 equal c_rRg*c_rRg
+### compute RE2E ################
+compute xe1 gE1 reduce ave x
+compute xe2 gE2 reduce ave x
+compute ye1 gE1 reduce ave y
+compute ye2 gE2 reduce ave y
+compute ze1 gE1 reduce ave z
+compute ze2 gE2 reduce ave z
+variable rRe2 equal (c_xe2-c_xe1)^2+(c_ye2-c_ye1)^2+(c_ze2-c_ze1)^2
+variable rRe equal sqrt(v_rRe2)
+
+variable velx atom vx
+compute vx_poly gPoly reduce ave v_velx
+compute vx_sol gSol reduce ave v_velx
+variable vx_relative equal c_vx_poly-c_vx_sol 
+
+variable lxbox equal lx
+variable lybox equal ly
+variable lzbox equal lz
+

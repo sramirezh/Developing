@@ -1,0 +1,37 @@
+#General computes and variable definition
+
+variable myNevery equal 100
+variable myNrepeat equal 100
+variable myFreq equal ${myNevery}*${myNrepeat}
+
+compute tempall all temp # temperature for all the particles
+compute tempfluid gFluid temp # temperature recalculate for fluid
+
+
+###################################################
+#Counting Particles
+###################################################
+
+# In the bulk
+variable cBSolu equal count(gSolu,rBulk)
+variable cBSolv equal count(gSolv,rBulk)
+variable cRatio equal v_cBSolu/v_cBSolv
+
+# "all" the volume
+
+variable cSolu equal count(gSolu,rSystem)
+variable cSolv equal count(gSolv,rSystem)
+
+###################################################
+# computing velocities
+###################################################
+
+# In the entire system
+variable	vx_Solv equal vcm(gSolv,x,rSystem)
+variable        vx_Solu equal vcm(gSolu,x,rSystem)
+variable        vx_Sol  equal vcm(gFluid,x,rSystem)
+
+# In the bulk
+variable        vxB_Solv equal vcm(gSolv,x,rBulk)
+variable        vxB_Solu equal vcm(gSolu,x,rBulk)
+variable        vxB_Sol  equal vcm(gFluid,x,rBulk)

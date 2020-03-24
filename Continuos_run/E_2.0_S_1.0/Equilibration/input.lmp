@@ -1,0 +1,159 @@
+# step interval for outputs
+
+variable	myThermo equal 1000
+variable        myDumpV equal 10000
+variable 	pLoop equal 200
+variable        myPLoop loop ${pLoop}
+variable 	myUpdateDyn equal 10 #THIS IS THE MOST IMPORTANT PARAMETER as atom/swap does not update
+variable 	my_MC_times equal 10 #Number of MC before replenishing
+variable 	myX_relax equal 10^4
+variable 	myStepsEach equal ${myUpdateDyn}*${my_MC_times} #Every these steps there is a replenish
+
+#Equilibration steps
+variable 	myEq1 equal 10^5
+variable 	myEq2 equal 10^5
+#variable 	myFinal equal 6000000
+
+units		lj	
+atom_style	full
+boundary p p p
+
+read_data	initial_conf.dat
+##########################################################
+#setting interaction parameter
+include ../in.interaction
+##########################################################
+
+# minimize potential of system
+minimize 0.0 0.0 1000 1000
+
+# set parameters of Varlet neighbor lis
+neighbor        0.5 bin
+neigh_modify	every 1 delay 10 check yes
+
+##########################################################
+#setting geometry
+include ../in.geom
+
+##########################################################
+# set velocities of particles
+
+velocity	all create 1.0 123456 dist gaussian
+
+# set time step
+reset_timestep 0
+timestep	0.005
+run_style	verlet
+
+##############################################################
+# set display format for thermodynamic quantities
+thermo	        ${myThermo}
+thermo_modify	format float %25.15f lost warn
+
+##########################################################
+#setting computation
+include in.computations_eq
+##########################################################
+
+
+#fix             thermostat all nvt temp 1.0 1.0 1.0
+variable        P0 equal 1e0
+fix             barostat all npt temp 1.0 1.0 0.2 y ${P0} ${P0} 5.0
+
+#####################################################
+#Defining the dynamic groups (dg)
+#and variables as the bulk volume
+#####################################################
+compute         AtomType all property/atom type
+variable        Type2 atom "c_AtomType == 2"
+variable        Type1 atom "c_AtomType == 1"
+
+group           dgSolu dynamic all var Type2 every ${myUpdateDyn}
+group 		dgSolv dynamic all var Type1 every ${myUpdateDyn}
+group	 	dgBSolv dynamic all var Type1 region rBulk every ${myUpdateDyn}
+group 		dgBSolu dynamic all var Type2 region rBulk every ${myUpdateDyn}
+
+variable 	dcBSolu equal count(dgSolu,rBulk)
+variable 	dcBSolv equal count(dgSolv,rBulk)
+variable 	dcSolu	equal count(dgSolu)
+variable 	dbulk_vol equal 2.*5.*lx*ly
+variable 	conc_bulk equal v_dcBSolu/v_dbulk_vol
+variable	frac_bulk equal v_dcBSolu/v_dcBSolv
+
+
+variable 	cond1 equal v_nTargetSolu>=v_conc_bulk
+variable 	cond2 equal v_nTargetSolu<v_conc_bulk 
+variable 	frac equal (v_nTargetSolu-v_conc_bulk)*v_dbulk_vol/v_dcBSolv*v_cond1
+variable 	frac2 equal (v_conc_bulk-v_nTargetSolu)*v_dbulk_vol/v_dcBSolu*v_cond2
+
+
+##########################################################
+# set output
+thermo_style custom step c_tempcal press v_dcSolu ly v_conc_bulk v_dcBSolu v_dcBSolv 
+fix cal1 all ave/time ${myThermo} 1 ${myThermo} v_dcBSolu v_dcBSolv v_conc_bulk  v_frac_bulk file "./vdata_eq.dat"
+dump poly gPoly custom ${myUpdateDyn} poly.atom id type x y z ix iy iz 
+
+##########################################################
+
+#Pre-Equilibration to let the particles go around the polymer
+#fix forced_MC all tfmc 0.1 1.0 12343142
+
+run ${myEq1}
+
+fix Precenter gPoly recenter NULL NULL 0.5 units fraction shift all
+
+##########################################################
+#Fixing the bulk concentration
+##########################################################
+thermo ${myUpdateDyn}
+fix 		mc_relax all atom/swap ${myUpdateDyn} ${myX_relax}  13412 1.0 types 1 2
+run 20
+
+variable Ly equal ly
+fix average_ly all ave/time 1 1000 1000 v_Ly ave running overwrite
+
+dump dump_all all custom ${myUpdateDyn} all.atom id type x y z ix iy iz
+
+label barostating
+run             ${myStepsEach} 
+
+#changing solvents into solutes
+set group dgBSolv type/fraction 2 ${frac} 2014 
+#changing solutes into solvents
+set group dgBSolu type/fraction 1 ${frac2} 12899
+
+next myPLoop  
+
+jump SELF barostating
+
+
+
+##########################################################
+##Run for statistics
+###########################################################
+
+
+#Setting the simulation to the average ly
+variable ly_ave equal f_average_ly
+print "The average value of ly is ${ly_ave}"
+change_box all y final 0 ${ly_ave}
+
+
+unfix mc_relax
+undump poly
+undump dump_all
+unfix barostat
+
+thermo ${myThermo}
+
+fix     thermostat all nvt temp 1.0 1.0 1.0 
+
+run ${myEq2}
+
+#fix ave_num all ave/time  ${myStepsEach} 1  ${myStepsEach} v_dcBSolu v_dcBSolv file ave_num.dat ave running overwrite
+#fix ave_num_long all ave/time ${myStepsEach} 1  ${myStepsEach} v_dcBSolu v_dcBSolv file long_ave_num.dat ave one
+#run ${myFinal}
+
+#Writing the final configuration
+write_data final_conf.dat nocoeff
+run 0

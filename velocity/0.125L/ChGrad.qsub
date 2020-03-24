@@ -1,0 +1,23 @@
+#PBS -N 1.5_ChGrad_0.125
+#PBS -q long
+#PBS -l walltime=02:24:00:00
+#PBS -l nodes=4:ppn=16
+#PBS -j oe
+# To get email when your job starts and ends
+#PBS -m ae
+#PBS -M sr802@cam.ac.uk
+cd $PBS_O_WORKDIR
+echo "Starting job $PBS_JOBID"
+echo
+echo "PBS assigned me this node:"
+cat $PBS_NODEFILE
+echo
+
+mpirun -np 16 /home/sr802/0.Simulation/1.LAMMPS/2.Solid_fluid/lmp_dexter -in 3DMeasurement.in
+
+echo
+echo "Job finished. PBS details are:"
+echo
+qstat -f ${PBS_JOBID}
+echo
+echo Finished at `date`

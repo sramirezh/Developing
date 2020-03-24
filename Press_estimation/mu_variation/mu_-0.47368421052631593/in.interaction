@@ -1,0 +1,5 @@
+pair_style      lj/cut 3.0
+pair_coeff      * * 1.0 1.0
+mass            * 1.0
+#pair_modify     shift yes
+pair_modify 	tail no

@@ -1,0 +1,10 @@
+# set lj potentials of each particle species
+pair_style	hybrid table linear 2000 lj/cut 2.5
+#pair_style	lj/cut 1.122462048 
+
+pair_coeff      1 1 lj/cut 1.0 1.0
+mass            * 1.0
+
+
+
+

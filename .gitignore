@@ -1,0 +1,23 @@
+#ignore everything
+*
+
+# But not these files...
+!*.qsub
+!.gitignore
+!*.lmp
+!in.*
+!*.sh
+!*.awk
+!*.lt
+!*.py
+!*.sh
+!*.c
+!*.cpp
+!*.h
+!*.ipynb
+!tmux.conf
+!*.md
+!*.yml
+# ...even if they are in subdirectories
+!*/
+

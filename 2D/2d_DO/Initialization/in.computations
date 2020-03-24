@@ -1,0 +1,53 @@
+#General computes and variable definition
+
+variable myNevery equal 100
+variable myNrepeat equal 100
+variable myFreq equal ${myNevery}*${myNrepeat}
+
+compute tempall all temp # temperature for all the particles
+compute tempfluid gFluid temp # temperature recalculate for fluid
+
+variable cBSolu equal count(gSolu,rBulk)
+variable cBSolv equal count(gSolv,rBulk)
+variable cRatio equal v_cBSolu/v_cBSolv
+
+
+###############################################################
+#Getting the properties LONG FILE
+###############################################################
+
+#Fluid properties
+
+compute         Stress gFluid stress/atom tempfluid
+compute         ccFluid1 gFluid chunk/atom bin/1d y lower 0.1 units box
+fix             propFluid gFluid ave/chunk  ${myNevery} ${myNrepeat} ${myFreq} ccFluid1 vx density/mass c_Stress[3] c_Stress[1] fx file properties.dat ave one
+
+#Solvent Properties
+compute         ccSolv1 gSolv chunk/atom bin/1d y lower 0.1 units box
+fix             propSolv  gSolv ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolv1 vx density/mass c_Stress[3] c_Stress[1] fx file Fproperties.dat ave one
+
+
+#Solute Properties
+compute         ccSolu1 gSolu chunk/atom bin/1d y lower 0.1 units box
+fix             propSolu  gSolu ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolu1 vx density/mass c_Stress[3] c_Stress[1] fx file Sproperties.dat ave one
+
+
+###############################################################
+#Getting the properties averaged FILE
+###############################################################
+
+#Fluid properties
+
+compute         Stress2 gFluid stress/atom tempfluid
+compute         ccFluid2 gFluid chunk/atom bin/1d y lower 0.1 units box
+fix             propFluid2 gFluid ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccFluid2 vx density/mass c_Stress[3] c_Stress[1] fx file properties_short.dat ave running overwrite
+
+#Solvent Properties
+compute         ccSolv2 gSolv chunk/atom bin/1d y lower 0.1 units box
+fix             propSolv2  gSolv ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolv2 vx density/mass c_Stress[3] c_Stress[1] fx file Fproperties_short.dat ave running overwrite
+
+
+#Solute Properties
+compute         ccSolu2 gSolu chunk/atom bin/1d y lower 0.1 units box
+fix             propSolu2  gSolu ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolu2 vx density/mass c_Stress[3] c_Stress[1] fx file Sproperties_short.dat ave running overwrite
+

@@ -1,0 +1,64 @@
+#General computes and variable definition
+
+#####################################################
+#Variables to set the box
+####################################################
+
+variable lxbox equal lx
+variable lybox equal ly
+variable lzbox equal lz
+
+
+#####################################################
+#Basic calculations
+####################################################
+
+compute tempcal all temp # temperature for all the particles
+compute presscal all pressure tempcal ke
+compute petotal all pe # potential energy
+compute tempsol gSol temp # temperature recalculate for solution
+compute comPoly gPoly com #center of mass of polyper 
+
+####################################################
+# computing Radius of gyration
+####################################################
+
+compute rRg gPoly gyration 
+variable rRg2 equal c_rRg*c_rRg
+
+
+####################################################
+#Computing  RE2E
+####################################################
+
+compute xe1 gE1 reduce ave x
+compute xe2 gE2 reduce ave x
+compute ye1 gE1 reduce ave y
+compute ye2 gE2 reduce ave y
+compute ze1 gE1 reduce ave z
+compute ze2 gE2 reduce ave z
+variable rRe2 equal (c_xe2-c_xe1)^2+(c_ye2-c_ye1)^2+(c_ze2-c_ze1)^2
+variable rRe equal sqrt(v_rRe2)
+variable Rg equal c_rRg
+
+###################################################
+# computing velocities
+###################################################
+
+variable velx atom vx
+compute vx_poly gPoly reduce ave v_velx #Polymer Velocity
+compute vx_sol gSol reduce ave v_velx #Solute Velocity
+variable vx_relative equal c_vx_poly-c_vx_sol #Relative Velocity
+
+###################################################
+#Counting Particles
+###################################################
+
+#All the volume
+
+variable cPoly equal count(gPoly)
+variable cSolu equal count(gSolu) 
+
+#Target densities of solutes in the bulk
+
+variable nTargetSolu equal 0.376

@@ -1,0 +1,96 @@
+# step interval for outputs
+variable	myThermo equal 10000
+variable	myRestart equal 1000000
+variable        myImage equal 1000
+variable        myDumpV equal 10000
+variable        myDump equal 10000
+
+variable        myStepsEach equal 10 #Has to be the same as in the in.conprof
+variable        myLoop loop 5000000
+
+#Specific Variables 
+
+variable 	R_h equal 4.67520164
+
+variable        forc0 equal 0.1
+
+units		lj	
+atom_style	full
+boundary p p p
+
+read_data ../../Equilibration/final_conf.dat
+
+##########################################################
+#setting interaction parameter
+include ../../in.interaction
+##########################################################
+
+# set parameters of Varlet neighbor list
+neighbor        0.5 bin
+neigh_modify	every 1 delay 10 check yes
+
+##########################################################
+#setting geometry
+include ../../in.geom
+
+region		rColloid sphere ${lhalfx}  ${lhalfy} ${lhalfz} ${R_h}
+
+
+##########################################################
+
+# set time step
+reset_timestep  0
+timestep	0.005
+run_style	verlet
+
+##############################################################
+# set display format for thermodynamic quantities
+thermo	        ${myThermo}
+thermo_modify	format float %25.15f lost warn
+
+##########################################################
+
+
+##########################################################
+#setting computation
+include in.computations
+include in.velprof
+##########################################################
+
+#Definition of the forces
+
+fix adf0 gSolu addforce v_forc0 0.0 0.0
+fix adf1 gSolv addforce v_forc1 0.0 0.0
+fix adfp gPoly addforce v_forcp 0.0 0.0
+
+
+#Velocities of polymer, bulk, and inside sphere
+
+
+fix velocities all ave/time ${myStepsEach} 100 1000 v_vx_sol_bulk v_vx_sol_inside v_vx_poly file "./vel_sol.dat"
+
+
+fix              3 all nvt temp 1.0 1.0 1.0
+
+##########################################################
+# set output
+thermo_style custom step temp press c_comPoly[1] c_comPoly[2] c_comPoly[3] v_vx_sol_bulk v_vx_sol_inside v_Fbulk v_Fsol v_forcp v_Ftotal
+fix cal1 all ave/time 1 1000 1000  v_rRe2 v_rRg2 v_conc_bulk v_frac_bulk file "./vdata.dat"
+
+##########################################################
+#Trajectory output
+##########################################################
+
+dump poly gPoly custom ${myDumpV} poly.atom id type x y z ix iy iz
+
+##########################################################
+label loop
+run             ${myStepsEach}
+
+variable xDis equal -(c_comPoly[1]-v_lhalfx)
+variable yDis equal -(c_comPoly[2]-v_lhalfy)
+variable zDis equal -(c_comPoly[3]-v_lhalfz)
+displace_atoms all move v_xDis v_yDis v_zDis units box
+
+next myLoop
+jump SELF loop

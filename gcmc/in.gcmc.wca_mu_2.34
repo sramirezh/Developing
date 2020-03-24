@@ -1,0 +1,71 @@
+# GCMC for LJ simple fluid, no dynamics
+# T = 2.0
+# rho ~ 0.5
+# p ~ 1.5
+# mu_ex ~ 0.0
+# comparable to Frenkel and Smit GCMC Case Study, Figure 5.8 
+
+# variables modifiable using -var command line switch
+
+variable        mu1 index -2.34
+variable 	mu2 index -1.54
+
+variable        temp index 1.0
+variable	disp index 1.0
+variable        lbox index 5.0
+
+# global model settings
+
+units           lj
+atom_style      atomic
+pair_style      lj/cut 1.12246
+pair_modify	tail no # turn of to avoid triggering full_energy
+
+# box
+
+region		box block 0 ${lbox} 0 ${lbox} 0 ${lbox}
+create_box	2 box
+
+# lj parameters
+pair_coeff      * * 1.0 1.0
+mass		* 1.0
+
+# gcmc
+group 		Solvents type 1
+group 		Solutes  type 2
+fix             mygcmcF Solutes gcmc 1 100 100 2 29494 ${temp} ${mu1} ${disp}
+fix 		mygcmcS Solvents  gcmc 1 100 100 1 212341 ${temp} ${mu2} ${disp}
+# averaging
+
+variable	rho equal density #I guess this I have to get via chunk or smt
+variable	p equal press
+variable 	V equal vol
+variable	nugget equal 1.0e-8 #I guess its a Numerical correction, to avoid having zero.
+variable        lambda equal 1.0
+#variable     	muex equal ${mu}-${temp}*ln(density*${lambda}+${nugget}) # I am setting the mu of the ideal reservoir
+#fix 		ave all ave/time 10 100 1000 v_rho v_p v_muex ave one file rho_vs_p.dat
+
+variable 	Ns equal count(Solutes)
+variable	Nf equal count(Solvents)
+variable 	rhoS equal ${Ns}/125.0
+variable 	rhoF equal ${Nf}/125.0
+
+fix            ave all ave/time 10 100 1000 v_rho v_p v_Ns v_Nf ave one file rho_vs_p.dat
+
+ 
+variable	rhoav equal f_ave[1]
+variable	pav equal f_ave[2]
+variable 	rhoSav equal f_ave[3]
+variable 	rhoFav equal f_ave[4]
+# output
+
+#variable	tacc equal f_mygcmc[2]/(f_mygcmc[1]+${nugget})
+#variable	iacc equal f_mygcmc[4]/(f_mygcmc[3]+${nugget})
+#variable	dacc equal f_mygcmc[6]/(f_mygcmc[5]+${nugget})
+compute_modify  thermo_temp dynamic yes # VERY IMPORTANT THIS
+thermo_style    custom step temp press vol v_V pe ke density atoms v_rhoav v_pav v_rhoSav v_rhoFav
+thermo          1000
+
+# run
+
+run             100000

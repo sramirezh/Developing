@@ -1,0 +1,24 @@
+#PBS -N Continuos_run_1.0_1.0_dDP0040
+#PBS -q short
+#PBS -l walltime=24:00:00
+#PBS -o output.pbs
+#PBS -e error.pbs
+#PBS -l nodes=1:ppn=16
+# To get email when your job starts and ends
+##PBS -m ae
+#PBS -M sr802@cam.ac.uk
+cd $PBS_O_WORKDIR
+echo "Starting job $PBS_JOBID"
+echo
+echo "PBS assigned me this node:"
+cat $PBS_NODEFILE
+echo
+
+mpirun -np 16 ~/lammps-11Aug17/src/lmp_dexter -in input.lmp
+
+echo
+echo "Job finished. PBS details are:"
+echo
+qstat -f ${PBS_JOBID}
+echo
+echo Finished at `date`

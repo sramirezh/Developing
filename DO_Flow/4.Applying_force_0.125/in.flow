@@ -1,0 +1,18 @@
+
+###############################################################
+#Getting the properties averaged FILE
+###############################################################
+
+#Fluid properties
+
+compute         ccFluid2 gFluid chunk/atom bin/1d z lower 0.5 units box
+fix             propFluid2 gFluid ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccFluid2 vx density/mass file properties_short.dat ave running overwrite
+
+#Solvent Properties
+compute         ccSolv2 gSolv chunk/atom bin/1d z lower 0.5 units box
+fix             propSolv2  gSolv ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolv2 vx density/mass  file Fproperties_short.dat ave running overwrite
+
+
+#Solute Properties
+compute         ccSolu2 gSolu chunk/atom bin/1d z lower 0.5 units box
+fix             propSolu2  gSolu ave/chunk ${myNevery} ${myNrepeat} ${myFreq}  ccSolu2 vx density/mass file Sproperties_short.dat ave running overwrite

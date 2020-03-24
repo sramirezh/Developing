@@ -1,0 +1,78 @@
+#3D Binary LJ flow simulation
+#This implements a barostat by moving the wall to get the desired pressure
+# Type 1 is the solvent
+# Type 2 is the solute
+# Type 3 is the wall
+
+units		lj
+atom_style	atomic
+neighbor        0.5 bin
+neigh_modify    every 1 delay 10 check yes
+
+#Variable definition
+
+variable    	Fsolu equal 0.125
+variable 	tstep equal 0.01
+variable 	Myequil equal 1e7
+variable 	Myrun equal 3e8
+variable 	Mytraj equal 1e6
+variable 	Myprop equal 1e5
+variable 	Myrestart equal ${Myrun}/10
+
+# Read equilibrated simulation
+
+read_data       ../3.Measuring/final_conf.dat
+
+change_box      all boundary p p f
+
+# Including the geometry and interactions
+include ../in.interaction
+include in.geom
+
+#Defining the wall
+fix             SlipWall gFluid wall/reflect zhi EDGE #SlipWall
+velocity        gWall set 0.0 0.0 0.0
+fix             staticwall gWall setforce 0.0 0.0 0.0 
+
+
+include 	in.computations
+
+variable        z_iterate file ../3.Measuring/Zpos_iterate.dat
+variable        Forcex file ../3.Measuring/Force_iterate.dat
+variable        imax equal 29 #Number of bins, from the lines in the files
+
+variable        i loop ${imax}
+
+#Force Loop
+label           start_of_loop_1
+variable        zlo equal ${z_iterate}
+next            z_iterate
+region          reg_force${i} block INF INF INF INF  ${zlo} ${z_iterate} units box
+variable        force equal ${Forcex}*${Fsolu}
+fix             fForce${i} gFluid addforce ${force} 0 0 region reg_force${i}
+next            Forcex
+next            i
+jump            SELF start_of_loop_1
+
+
+# Run Parameters
+
+timestep	${tstep}
+fix 		Enseble all nvt temp 1.0 1.0 0.1 
+# Previous line specifies: NVT thermostatted by Nose-Hoover a chained thermostat, the last parameter is the damping parameter in time units
+
+#Compute and output
+thermo		500
+thermo_style 	custom elapsed step c_tempall c_tempfluid press vol lz  
+thermo_modify  	flush yes 
+
+fix cal1 gFluid ave/time 1 1000 1000  v_vx_Solv v_vx_Solu v_vx_Sol v_vxB_Solv v_vxB_Solu v_vxB_Sol v_cSolu v_cSolv v_cBSolu v_cBSolv  file "./vdata.dat"
+
+run 		${Myequil}
+
+include  	in.flow
+# Trajectory and restart files
+shell mkdir restart_configs
+dump            1 all xyz ${Mytraj} trajectory.xyz
+restart 	${Myrestart} restart_configs/restart_conf.dat
+run		${Myrun}
