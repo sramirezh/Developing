@@ -1,0 +1,52 @@
+N2 {
+
+  # LAMMPS supports a large number of force-field styles. We must select
+  # which ones we need. This information belongs in the "In Init" section.
+
+  write_once("In Init") {
+    # Indicate which atom style and force-field styles we will need:
+    units        real
+    atom_style   full
+    pair_style   lj/cut
+    pair_modify  mix arithmetic
+  }
+
+  # AtomID  MolID("."=this)  AtomType  charge  coordX   coordY   coordZ
+
+  write("Data Atoms") {
+    $atom:N1    $mol:.      @atom:N  0.0  0.0000000 0.000000 0.000000
+    $atom:N2    $mol:.      @atom:N  0.0  1.1000000 0.000000 0.000000  
+  }
+
+  # AtomType  Mass
+
+  write_once("Data Masses") {
+    @atom:N 14.00670
+  }
+
+  #  BondID    BondType  AtomID1  AtomID2
+
+# Just for visualization, as there will be a fix rigid
+  write("Data Bonds") {
+    $bond:N1N2  @bond:NN  $atom:N1  $atom:N2
+  }
+
+
+  # AtomType   parameter-list
+
+  write_once("Data Pair Coeffs") {
+    @atom:N   0.122412 3.31 
+  }
+
+  # BondType   parameter list
+
+  write_once("Data Bond Coeffs") {
+    @bond:NN    200.00 1.0 
+  }
+
+} # SPCE
+
+# Some calculations
+# Lee2014 has that epsilon/k_B = 61.6 K
+# In real units, epsilon is in kcal/mol in LAMMPS, so k_b  = 0.0019872041 kcal/(mol⋅K) 
+# therefore epsilon = 61.6* 0.0019872041 kcal/mol = 0.12241177255999999 kcal/mol

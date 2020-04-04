@@ -1,0 +1,5 @@
+# file "system.lt"
+
+import "spce_simple.lt"
+
+wat  = new SPCE [1000] 
