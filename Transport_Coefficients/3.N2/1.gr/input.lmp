@@ -3,7 +3,6 @@
 # ------------------------------- Initialization Section --------------------
 atom_style full
 units real
-bond_style harmonic # Just for visualisation 
 pair_style lj/cut 8.0
 pair_modify mix geometric
 
@@ -16,10 +15,10 @@ read_data       "system.data"
 # ------------------------------- Settings Section --------------------------
 
 pair_coeff 1 1 0.122412 3.31
-bond_coeff 1 5000.00 0.550  
 
 # ------------------------------- Run Equilibration -------------------------------
-
+group nitrogen type 1
+velocity nitrogen create 273.15 432567 dist uniform
 
 # -- minimization protocol --
 
@@ -29,11 +28,6 @@ bond_coeff 1 5000.00 0.550
 #        It is incompatible with "minimize", so we disable it first.)
 #unfix         fShakeSPCE
 thermo        500
-minimize 1.0e-4 1.0e-6 100000 400000
-
-
-# Optional: write the coordinates after minimization
-write_data   system_after_min.data
 
 
 # ------------------------------- Run NVT Section -------------------------------
@@ -45,8 +39,8 @@ neigh_modify delay 0 every 1 check yes
 timestep        1.0
 
 dump            nvt_traj all custom 10000 traj_nvt.lammpstrj id mol type x y z ix iy iz
-fix             fxnvt all rigid/nvt molecule temp 300.0 300.0 100.0 tchain 1
+fix             fxnvt all rigid/nvt molecule temp 273.15 273.15 100
 
-run             100000
+run             10000
 
 write_data   system_after_nvt.data

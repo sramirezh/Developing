@@ -1,0 +1,47 @@
+#Simulating 1000 N2 molecules
+
+# ------------------------------- Initialization Section --------------------
+atom_style full
+units real
+pair_style lj/cut 8.0
+pair_modify mix geometric
+
+# ------------------------------- Atom Definition Section -------------------
+
+# Reads a crystalline array array of methane (10x10x10)
+
+read_data       "system.data"
+
+# ------------------------------- Settings Section --------------------------
+
+pair_coeff 1 1 0.122412 3.31
+
+# ------------------------------- Run Equilibration -------------------------------
+group nitrogen type 1
+velocity nitrogen create 273.15 432567 dist uniform
+
+# -- minimization protocol --
+
+# Note: The minimization step is not necessary in this example.  However
+#       in general, it's always a good idea to minimize the system beforehand.
+#       (The "fShakeSPCE" fix was defined in system.in.settings. 
+#        It is incompatible with "minimize", so we disable it first.)
+#unfix         fShakeSPCE
+thermo        500
+
+
+# ------------------------------- Run NVT Section -------------------------------
+# -- simulation protocol --
+
+neighbor 0.5 bin
+neigh_modify delay 0 every 1 check yes
+
+timestep        1.0
+
+dump            nvt_traj all custom 1000 traj_nvt.lammpstrj id mol type x y z ix iy iz
+dump 		dcd_file all dcd 1000 dcd_nvt.dcd
+fix             fxnvt all rigid/nvt molecule temp 273.15 273.15 100
+
+run             1000000
+
+write_data   system_after_nvt.data
