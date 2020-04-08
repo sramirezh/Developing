@@ -5,7 +5,7 @@ atom_style full
 units real
 pair_style lj/cut 8.0
 pair_modify mix geometric
-
+bond_style      harmonic
 # ------------------------------- Atom Definition Section -------------------
 
 # Reads a crystalline array array of methane (10x10x10)
@@ -15,6 +15,7 @@ read_data       "system.data"
 # ------------------------------- Settings Section --------------------------
 
 pair_coeff 1 1 0.122412 3.31
+bond_coeff 1 5000.00 1.1
 
 # ------------------------------- Run Equilibration -------------------------------
 group nitrogen type 1

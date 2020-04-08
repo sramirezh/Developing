@@ -27,9 +27,9 @@ N2 {
   #  BondID    BondType  AtomID1  AtomID2
 
 # Just for visualization, as there will be a fix rigid
-#  write("Data Bonds") {
-#    $bond:N1N2  @bond:NN  $atom:N1  $atom:N2
-#  }
+  write("Data Bonds") {
+    $bond:N1N2  @bond:NN  $atom:N1  $atom:N2
+  }
 
 
   # AtomType   parameter-list
@@ -39,10 +39,10 @@ N2 {
   }
 
   # BondType   parameter list
-#
-#  write_once("Data Bond Coeffs") {
-#    @bond:NN    200.00 1.0 
-#  }
+
+  write_once("Data Bond Coeffs") {
+    @bond:NN    5000.00 1.1                    #1.1 is the equilibrium distance for the particles 
+  }
 
 } # SPCE
 
