@@ -1,0 +1,13 @@
+# file "system.lt"
+
+import "N2.lt"
+
+wat  = new N2 [3].move(0,0,15) 
+              [3].move(0,15,0) 
+              [3].move(15,0,0)
+
+write_once("Data Boundary") {
+   0.0  45  xlo xhi
+   0.0  45  ylo yhi
+   0.0  45  zlo zhi
+}
