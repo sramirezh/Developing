@@ -3,7 +3,7 @@
 # ------------------------------- Initialization Section --------------------
 atom_style full
 units real
-pair_style lj/cut 8.0
+pair_style lj/sf 8.0
 pair_modify mix geometric
 bond_style      harmonic
 # ------------------------------- Atom Definition Section -------------------
@@ -39,7 +39,9 @@ neigh_modify delay 0 every 1 check yes
 
 timestep        1.0
 
-dump            nvt_traj all custom 1000 traj_nvt.lammpstrj id mol type x y z ix iy iz
+dump            nvt_traj all custom 1000 traj_nvt.lammpstrj id mol type x y z
+dump 		velocities all custom 1000 velocities.dat id type vx vy vz
+
 dump 		dcd_file all dcd 1000 dcd_nvt.dcd
 fix             fxnvt all rigid/nvt molecule temp 273.15 273.15 100
 
