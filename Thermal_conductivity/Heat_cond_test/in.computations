@@ -1,0 +1,12 @@
+
+# Sampling intervals
+variable sf equal 1 # Sample interval
+variable pf equal 1 
+variable df equal ${pf}*${sf}
+
+# Computing the viscosity
+fix     head_flux all ave/time ${sf} ${pf} ${df} v_Jx v_Jy v_Jz ave one file fluxes.dat 
+
+
+
+

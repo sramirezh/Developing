@@ -1,0 +1,95 @@
+#Simulating 1000 N2 molecules
+variable 	myRun equal 2e6
+variable 	myEq  equal 4e5
+variable 	myDump equal 100
+variable 	myStep equal 10
+variable 	myTemp equal 273.15
+variable 	myThermo equal 1000
+# ------------------------------- Initialization Section --------------------
+atom_style full
+units real
+pair_style lj/sf 8.0
+pair_modify tail yes
+pair_modify mix geometric
+#bond_style      harmonic
+# ------------------------------- Atom Definition Section -------------------
+
+# Reads a crystalline array array of methane (10x10x10)
+
+read_data       "system.data"
+
+# ------------------------------- Settings Section --------------------------
+
+pair_coeff 1 1 0.122412 3.31
+#bond_coeff 1 5000.00 1.1
+
+# ------------------------------- Run Equilibration -------------------------------
+group nitrogen type 1
+velocity nitrogen create ${myTemp} 432567 dist uniform
+
+timestep        ${myStep}
+# -- minimization protocol --
+
+# Note: The minimization step is not necessary in this example.  However
+#       in general, it's always a good idea to minimize the system beforehand.
+#       (The "fShakeSPCE" fix was defined in system.in.settings. 
+#        It is incompatible with "minimize", so we disable it first.)
+#unfix         fShakeSPCE
+
+
+
+# ------------------------------- Run NVT Section -------------------------------
+# -- simulation protocol --
+
+neighbor 0.5 bin
+neigh_modify delay 0 every 1 check yes
+#neigh_modify exclude molecule/intra all
+
+#compute 	1 all pressure thermo_temp ke
+fix             fxnvt all rigid/nvt molecule temp ${myTemp} ${myTemp} 100
+
+
+thermo        ${myThermo}
+thermo_style custom step temp pe ke etotal press pxy
+
+run 		${myEq}
+
+
+# Computation of the viscosity on the flight
+variable    ps equal 400     # correlation length\
+variable    ss equal 5       # sample interval
+variable    ds equal ${ps}*${ss}   # dump interval
+
+
+include 	in.computations
+
+#dump            nvt_traj all custom ${myDump} traj_nvt.lammpstrj id mol type x y z
+#dump            per_image all custom ${myDump} per_image.dat id type ix iy iz
+#dump 		dcd_file all dcd ${myDump} dcd_nvt.dcd
+
+
+fix          JJ all ave/correlate ${ss} ${ps} ${ds} c_flux[1] c_flux[2] c_flux[3] type auto file J0Jt.dat ave running
+
+
+# convert from LAMMPS real units to SI 
+variable    kB equal 1.3806504e-23    # [J/K] Boltzmann
+variable    kCal2J equal 4186.0/6.02214e23
+variable    A2m equal 1.0e-10
+variable    fs2s equal 1.0e-15
+variable    convert equal ${kCal2J}*${kCal2J}/${fs2s}/${A2m}
+
+variable     scale equal ${convert}/${kB}/${myTemp}/${myTemp}/vol*${ss}*dt
+variable     k11 equal trap(f_JJ[3])*${scale}
+variable     k22 equal trap(f_JJ[4])*${scale}
+variable     k33 equal trap(f_JJ[5])*${scale}
+
+thermo_style custom step temp v_Jx v_Jy v_Jz v_k11 v_k22 v_k33 v_convert v_scale
+
+thermo		${ds}
+run             ${myRun}
+
+variable     k equal (v_k11+v_k22+v_k33)/3.0
+print        "average conductivity: $k[W/mK] @ ${myTemp} K"
+
+
+
