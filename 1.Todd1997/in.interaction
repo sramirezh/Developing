@@ -1,0 +1,5 @@
+pair_style  	lj/cut 1.122462048309373 #WCA
+pair_coeff	* * 1.0 1.0
+mass 		* 1.0
+pair_modify	shift yes
+

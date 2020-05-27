@@ -1,0 +1,91 @@
+#3D WCA flow simulation to reproduce the results on 
+# Reproducing Todd 1995
+
+# Improved initialization with the two types of crystalline lattices.
+# Type 1 is the solution
+# Type 2 is the Wall
+
+
+boundary	p p p #f is fixed wall, to set the slipwall condition, it cant be periodic. 
+
+units		lj
+atom_style	atomic
+neighbor	0.3 bin
+neigh_modify	delay 5
+
+#Variable definition
+
+variable 	nrun equal 1.18e7 #Number of steps
+variable	Myequil equal 1e5
+variable 	Lx equal 7.4217
+variable	Lz equal 25
+variable 	F equal 0.01
+variable 	n_solid equal 3 #Number of solid layers
+variable 	rho_solid equal 0.8700
+variable 	rho_fluid equal 0.4181
+variable 	T equal 0.722
+variable 	K equal 100 # Spring constant
+variable 	tstep equal 0.001
+variable 	delta_z equal 0.28 #for the bins in z
+
+#Some computations for the solid wall
+variable 	a_solid equal (4/${rho_solid})^(1/3)   #lattice constant for the solid
+#variable 	lz_wall equal 1.5*${a_solid} # As the unitary box has two layers and I need 3
+variable 	lz_wall equal 1.5625
+# To have the center of the fluid region at z=0
+variable 	lz_min equal -(${lz_wall}+${Lz}/2) # Lower limit of the wall 
+variable 	lz_half equal ${Lz}/2
+
+#Creating the geometry
+region 		box block 0 ${Lx} 0 ${Lx}  ${lz_min} ${lz_half} units box
+create_box	2 box
+
+#Wall atoms
+
+lattice 	fcc ${rho_solid}
+region 		Wall block 0 ${Lx} 0 ${Lx} ${lz_min} -${lz_half} units box
+create_atoms 	2 region Wall
+group 		WallAtoms region Wall
+
+#Fluid atoms
+lattice 	fcc ${rho_fluid}
+region 		Fluid block 0 ${Lx} 0 ${Lx} -${lz_half} ${lz_half} units box  
+create_atoms	1 region Fluid
+group 		Flow subtract all WallAtoms
+
+# Potential and pertinent checks
+include 	in.interaction
+pair_write 	1 2 500 r 1.0 2 wca.dat LJ
+
+# Fixes (See Poiseuille flow example):w
+
+fix 		springs WallAtoms spring/self $K
+fix	     	6 Flow addforce $F 0.0 0.0  #to add the pressure
+
+# Run Parameters
+
+timestep	${tstep}
+minimize 	0.0 1.0e-8 1000 100000          #Relax the initial configuration and velocities
+
+# Thermostat only on wall
+
+fix 		Ensemble1 all nvt temp $T $T 0.500
+#fix 1 all nve/limit 0.1
+# Previous line specifies: NVT thermostatted by Nose-Hoover a chained thermostat, the last parameter is the damping parameter in time units
+
+#Compute and outputs
+thermo		500 
+thermo_style custom step temp
+#thermo_modify	temp mobile # This is not the temperature of the thermostat cause this measures only the Flow part, not the entire system. 
+
+dump            1 all xyz 10000 trajectory.xyz
+
+
+run 		${Myequil}
+compute 	cc1 Flow chunk/atom bin/1d z lower ${delta_z} bound z -${lz_half} ${lz_half} units box
+fix             8 Flow ave/chunk 100 100 10000 cc1 vx vz density/mass ave running overwrite  file velocity.dat
+compute 	cc2 Flow chunk/atom bin/1d z lower ${delta_z}  units box
+fix             9 Flow ave/chunk 100 100 10000 cc2 vx vz density/mass ave running overwrite  file velocity_all.dat
+fix 		10 Flow ave/chunk 100 100 10000 cc2 vx vz density/mass ave running file velocity_all_steps.dat
+
+run		${nrun}
