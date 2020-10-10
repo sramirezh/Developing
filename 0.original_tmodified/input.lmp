@@ -5,7 +5,6 @@
 # Type 1 is the solution
 # Type 2 is the Wall
 
-
 boundary	p p p #f is fixed wall, to set the slipwall condition, it cant be periodic. 
 
 units		lj
@@ -21,8 +20,7 @@ variable 	Lx equal 5.2479
 variable 	Ly equal 5.2479
 variable	Lz equal 26.5625
 variable 	F equal 0.05
-variable 	rho_solid equal 0.6535839871060429
-variable 	rho_fluid equal 0.8362
+variable 	N_wall equal 18
 variable 	N_fluid equal 558
 variable 	seed_vel equal 12134
 variable 	T equal 0.722
@@ -31,6 +29,8 @@ variable 	tstep equal 0.001
 variable 	delta_z equal 0.1 #for the bins in z
 
 #Some computations for the solid wall
+# The paper mentions 18 atoms per layer, so I need to see what is the surface density
+variable 	rho_solid equal ${N_wall}/(${Lx}*${Lx})
 variable 	a_solid equal (4/${rho_solid})^(1/3)   #lattice constant for the solid
 variable 	lz_wall equal 1.5*${a_solid}
 
@@ -57,68 +57,41 @@ region 		Fluid block 0 ${Lx} 0 ${Ly} -${lz_fluid_half} ${lz_fluid_half} units bo
 create_atoms 	1 random 558 12434 Fluid
 group 		Flow subtract all WallAtoms
 
-#variable        fraction equal 1-${N_fluid}/count(Flow) 	
-
-#set 		group Flow type/fraction 3 ${fraction} 193
-#group 		gdelete type 3
-#delete_atoms    group gdelete
-
 # Potential and pertinent checks
 include 	in.interaction
 pair_write 	1 2 500 r 1.0 2 wca.dat LJ
-
-
 write_data 	initial.dat
 
 run 0
 
-dump            1 all xyz 100 trajectory.xyz
+#dump            1 all xyz 100 trajectory.xyz
+
+
 # Minimisation keeping the wall fixed
 
-#fix 		fix_minimisation WallAtoms aveforce  0 0 0 
-
-
-#fix 		1 all nve/limit 0.1
-
 fix             wallset WallAtoms setforce 0 0 0
-#minimize 	0.0 1.0e-8 1000 00000          #Relax the initial configuration and velocities
 fix             6 Flow addforce $F 0.0 0.0  #to add the pressure
-#run 100000
-# Running equilibration
-
-#velocity 	Flow create $T ${seed_vel} dist gaussian
-
- 
-
-# Run Parameters
-
-timestep	${tstep}
 minimize        0.0 1.0e-8 1000 100000          #Relax the initial configuration and velocities
 
-#velocity 	WallAtoms create $T 4928459  dist gaussian
+# Running with the wall fixed
+timestep	${tstep}
 
 # Thermostat only on wall
-
 fix 		Ensemble1 WallAtoms nvt temp $T $T 0.500
 fix 		Ensemble Flow  nve
-#compute 	wallT WallAtoms temp
-#fix 		GaussianThermo WallAtoms temp/rescale 1 $T $T 0.02 1.0
-#fix_modify	GaussianThermo temp wallT
-#fix 1 all nve/limit 0.1
-# Previous line specifies: NVT thermostatted by Nose-Hoover a chained thermostat, the last parameter is the damping parameter in time units
-
 run 		10000
+
+
+# Equilibration 
+
 unfix           wallset
- 		
 fix             springs WallAtoms spring/self $K
 
 #Compute and outputs
 thermo		500 
 thermo_style custom step temp
-#thermo_modify	temp mobile # This is not the temperature of the thermostat cause this measures only the Flow part, not the entire system. 
-
-
-
 run 		${Myequil}
+
+# Production
 include 	in.computations
 run		${nrun}
