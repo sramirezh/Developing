@@ -38,7 +38,7 @@ variables = copy.deepcopy(data[:,0:2])
 # Getting beta
 variables[:,1] = 1/variables[:,1]
 
-er_results_eta = mf.test_prediction(coefficients, np.transpose(variables), data[:,2], poly_eta)
+er_results_eta = mf.test_prediction(coefficients, np.transpose(variables), data[:,2], poly_eta, 0)
 
 z_predicted = er_results_eta[:,1]
 

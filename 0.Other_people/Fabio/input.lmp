@@ -1,0 +1,26 @@
+clear
+atom_style atomic
+units lj
+boundary p p p 
+#atom_modify sort 0 0.0 
+
+read_data lammps_system
+
+### interactions
+pair_style lj/cut 2.5 
+pair_coeff * * 1 1 
+#mass 1 12.011000 
+#mass 2 1.008000 
+#mass 3 15.999000 
+mass * 1
+minimize 0.0 1.0e-8 1000 100000
+
+timestep 0.001
+
+### run
+fix fix_nve all nve
+dump dump_all all custom 1 traj_lammps.dat id type x y z vx vy vz fx fy fz
+thermo_style custom step temp press ke pe etotal
+thermo_modify flush yes format float %23.16g
+thermo 1
+run 100

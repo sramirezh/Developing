@@ -1,0 +1,15 @@
+# set lj potentials of each particle species
+pair_style	    lj/cut 2.5 
+
+pair_coeff      1 1 1.0 1.0
+pair_coeff      1 2 1.0 1.0
+pair_coeff      1 3 1.0 1.0
+pair_coeff      2 2 1.0 1.0
+pair_coeff      2 3 3.0 1.0
+pair_coeff      3 3 1.0 1.0 1.122462048 
+
+mass 		* 1.0
+
+pair_modify	   mix arithmetic
+pair_modify 	   shift yes
+pair_modify     tail no

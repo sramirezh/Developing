@@ -1,0 +1,49 @@
+#General computes and variable definition
+
+#####################################################
+#Variables to set the box
+####################################################
+
+variable lxbox equal lx
+variable lybox equal ly
+variable lzbox equal lz
+
+
+#####################################################
+#Basic calculations
+####################################################
+
+compute tempcal all temp # temperature for all the particles
+compute presscal all pressure tempcal ke
+compute petotal all pe # potential energy
+compute tempsol gSol temp # temperature recalculate for solution
+
+###################################################
+# computing velocities
+###################################################
+
+# In x
+variable	vx_Solv equal vcm(gSolv,x)
+variable 	vx_Solu equal vcm(gSolu,x)
+variable 	vx_Sol  equal vcm(gSol,x)
+
+# In y
+variable        vy_Solv equal vcm(gSolv,y)
+variable        vy_Solu equal vcm(gSolu,y)
+variable        vy_Sol  equal vcm(gSol,y)
+
+# In z
+variable        vz_Solv equal vcm(gSolv,z)
+variable        vz_Solu equal vcm(gSolu,z)
+variable        vz_Sol  equal vcm(gSol,z)
+
+
+###################################################
+#Counting Particles
+###################################################
+
+#All the volume
+
+variable cSolu equal count(gSolu) 
+variable cSolv equal count(gSolv)
+variable rho_ave equal (${cSolu}+${cSolv})/vol

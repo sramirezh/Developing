@@ -1,0 +1,86 @@
+# Simulation to obtain the correlations between the fluxes to compute the transport coefficients
+# using GK
+
+
+# Bulk Properties
+
+variable 	csBulk  equal 0.375332  #Bulk solute concentration
+variable 	rhoBulk equal 0.752375  #Bulk solution concentration
+
+# step interval for outputs
+
+variable	myThermo equal 1000
+variable	myRestart equal 1000000
+variable        myImage equal 1000
+variable        myDumpV equal 10000
+variable        myDump equal 10000
+variable 	myEquil equal 10^5
+
+variable        myRun equal 10^7
+
+units		lj	
+atom_style	full
+boundary p p p
+
+# TODO Change this line to a read data
+read_restart	restart.2050000
+
+##########################################################
+#setting interaction parameter
+include in.interaction
+##########################################################
+
+# set parameters of Varlet neighbor list
+neighbor        0.5 bin
+neigh_modify	every 1 delay 10 check yes
+
+##########################################################
+#setting geometry
+include in.geom
+##########################################################
+
+# set time step
+reset_timestep  0
+timestep	0.005
+run_style	verlet
+
+
+##############################################################
+# set display format for thermodynamic quantities
+thermo	        ${myThermo}
+thermo_modify	format float %25.15f lost warn
+
+##########################################################
+
+##########################################################
+#setting computation
+include in.computations
+##########################################################
+
+#Definition of the forces
+##########################################################
+
+#Keeping the obstacles fixed
+
+fix     monomers gMon setforce 0 0 0
+
+##########################################################
+
+
+fix              3 all nvt temp 1.0 1.0 1.0
+
+run 	${myEquil}
+##########################################################
+# set output
+thermo_style custom step c_tempcal c_presscal
+
+fix cal1 all ave/time 1 10 10 v_vx_Solv v_vx_Solu v_vx_Sol v_vy_Solv v_vy_Solu v_vy_Sol v_vz_Solv v_vz_Solu v_vz_Sol file "./vdata.dat"
+
+##########################################################
+#Trajectory output
+##########################################################
+shell mkdir conf
+
+##########################################################
+
+run ${myRun} 

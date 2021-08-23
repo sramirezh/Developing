@@ -1,0 +1,114 @@
+# Test to evaluate the GCMC implementation
+# The input parameter is the chemical potential as -v mu VALUE
+# Type 1 is Solvent
+# Type 2 is Solute
+# Type 3 is Monomer(obstacle)
+
+variable 	Lx equal 20
+variable 	myEquil equal 1e4
+variable 	myProd  equal 2e6
+variable 	myThermo equal 1e2
+variable 	myDump equal 1e4
+variable 	mu1 index -1.8
+variable 	mu2 index -1.8
+variable 	Temp equal 1.0 
+variable 	nonzero equal 1.0e-8
+variable 	MCdisp equal 1.0
+variable 	rho_Mon equal 0.08
+variable 	seed_Mon equal 123124
+variable 	lambda equal 1
+variable	myRestart equal 10^4
+variable 	NRestart equal 20
+variable	mySaveRestart equal ${NRestart}*${myRestart} 
+variable 	nMoveAtt equal 100
+variable 	nExcAtt equal 100
+
+
+timestep        0.005
+
+boundary 	p p p
+
+units 		lj
+atom_style      atomic
+neighbor        0.5 bin
+neigh_modify    every 1 delay 10 check yes
+
+
+
+region          box block 0 ${Lx} 0 ${Lx} 0 ${Lx}
+create_box      3 box
+
+include	 	in.interaction
+
+variable 	nMon equal round(vol*${rho_Mon})
+create_atoms 	3 random ${nMon} ${seed_Mon}  NULL
+
+group		gSolv type 1
+group		gSolu type 2
+group 		gMon type 3
+
+#To avoid pore overlaps
+minimize 	0.0 0.0 1000 1000
+reset_timestep 	0
+
+
+fix  		gcmcSolv gSolv gcmc 1 ${nExcAtt} ${nMoveAtt} 1 123423 ${Temp} ${mu1} ${MCdisp} 
+fix 		gcmcSolu gSolu gcmc 1 ${nExcAtt} ${nMoveAtt} 2 214223 ${Temp} ${mu2} ${MCdisp}
+
+
+fix 		porous gMon setforce 0 0 0
+
+# Measuring the rates of acceptance for translation, insertion, deletion
+
+variable        taccSolv equal f_gcmcSolv[2]/(f_gcmcSolv[1]+${nonzero})
+variable        iaccSolv equal f_gcmcSolv[4]/(f_gcmcSolv[3]+${nonzero})
+variable        daccSolv equal f_gcmcSolv[6]/(f_gcmcSolv[5]+${nonzero})
+
+	
+variable        taccSolu equal f_gcmcSolu[2]/(f_gcmcSolu[1]+${nonzero})
+variable        iaccSolu equal f_gcmcSolu[4]/(f_gcmcSolu[3]+${nonzero})
+variable        daccSolu equal f_gcmcSolu[6]/(f_gcmcSolu[5]+${nonzero})
+
+variable	nSolv	equal count(gSolv)
+variable 	nSolu	equal count(gSolu)
+variable 	rhoSolv equal v_nSolv/vol
+variable 	rhoSolu equal v_nSolu/vol
+
+#Computing the excess chemical potential
+
+variable 	muex_Solv equal ${mu1}-${Temp}*ln(${rhoSolv}*${lambda}+${nonzero})
+variable 	muex_Solu equal ${mu2}-${Temp}*ln(${rhoSolu}*${lambda}+${nonzero})
+variable 	p equal press
+
+
+#Checking that the temperatures are right
+compute 	TSolv gSolv temp
+compute 	TSolu gSolu temp
+compute_modify  TSolv dynamic yes
+compute_modify 	TSolu dynamic yes
+
+fix             ave all ave/time 10 100 1000 v_rhoSolv v_rhoSolu v_muex_Solv v_muex_Solu v_p  ave one file rho_vs_p.dat
+
+thermo          ${myThermo}
+
+thermo_style    custom step temp c_TSolv c_TSolu press v_nSolv v_nSolu density v_rhoSolv v_rhoSolu v_taccSolv v_iaccSolv v_daccSolv v_taccSolu v_iaccSolu v_daccSolu
+
+compute_modify 	thermo_temp dynamic yes
+
+#fix 		ensemble all nvt temp ${Temp} ${Temp} 0.1
+
+thermo_modify 	lost warn 
+
+run 		${myEquil}
+
+shell 		rmdir conf
+shell 		mkdir conf
+dump            dump_all all custom ${myDump} ./conf/config*.atom id type x y z ix iy iz
+run 		${myProd}
+
+#Saving the last configurations
+
+print 		"Now I will save the configurations" 
+shell		mkdir particle
+restart 	${myRestart} ./particle/restart.*  
+run             ${mySaveRestart}
